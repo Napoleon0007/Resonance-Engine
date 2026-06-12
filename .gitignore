@@ -1,0 +1,10 @@
+# generated test artifacts
+test/shots/
+test/test_track.wav
+
+# macOS
+.DS_Store
+
+# editor / deps
+node_modules/
+*.log

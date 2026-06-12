@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>RESONANCE ENGINE — Physics Music Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/+esm"
+  }
+}
+</script>
+</head>
+<body>
+<div id="scanlines"></div>
+
+<canvas id="stage"></canvas>
+
+<!-- Boot / drop screen -->
+<div id="boot-screen">
+  <div class="boot-inner">
+    <h1 class="glitch" data-text="RESONANCE ENGINE">RESONANCE ENGINE</h1>
+    <p class="boot-sub">PHYSICS-DRIVEN AUDIO REACTOR // v1.0</p>
+    <div id="boot-status" class="boot-status">INITIALISING PHYSICS CORE…</div>
+    <button id="boot-upload" class="neon-btn big" disabled>⬡ LOAD AUDIO TRACK</button>
+    <p class="boot-hint">or drag &amp; drop a file anywhere</p>
+    <p class="boot-keys mono">SPACE pause · F fullscreen · R record · 1–5 scenes · A auto · T tune</p>
+  </div>
+</div>
+
+<!-- HUD: a whisper, not a dashboard -->
+<header id="hud-top" class="hud hidden">
+  <span class="brand-mini">⬡</span>
+  <span class="track-mini">
+    <span id="track-name">—</span>
+    <span id="track-time" class="mono dim">0:00</span>
+  </span>
+  <span id="beat-lamp" title="beat"></span>
+  <span id="rec-dot" class="hidden" title="recording">●</span>
+</header>
+
+<canvas id="spectrum" width="640" height="44" class="hidden"></canvas>
+
+<!-- Preset glyphs -->
+<nav id="presets" class="hud hidden">
+  <button class="preset-btn active" data-preset="pulse" title="Pulse Orb [1]">◉</button>
+  <button class="preset-btn" data-preset="spirograph" title="Spirograph [2]">◌</button>
+  <button class="preset-btn" data-preset="psychedelia" title="Psychedelia [3]">✺</button>
+  <button class="preset-btn" data-preset="wavegrid" title="Wave Grid [4]">∿</button>
+  <button class="preset-btn" data-preset="celestial" title="Celestial [5]">☉</button>
+  <button class="preset-btn" data-preset="blackhole" title="Black Hole [6]">⨀</button>
+  <button class="preset-btn" data-preset="cymatica" title="Cymatica [7]">◈</button>
+  <button class="preset-btn" data-preset="dreams" title="Dreams [8]">❂</button>
+  <span id="auto-tag" title="auto-director is choosing scenes">AUTO</span>
+</nav>
+
+<!-- Tuning drawer: hidden until summoned -->
+<button id="drawer-toggle" class="hud hidden" title="tune [T]">◢</button>
+<aside id="drawer" class="hud hidden closed">
+  <div class="slider-row">
+    <label>BASS → GRAVITY</label>
+    <input type="range" id="s-gravity" min="0" max="2" step="0.01" value="1">
+    <span class="mono sval">1.00</span>
+  </div>
+  <div class="slider-row">
+    <label>KICK → IMPULSE</label>
+    <input type="range" id="s-impulse" min="0" max="2" step="0.01" value="1">
+    <span class="mono sval">1.00</span>
+  </div>
+  <div class="slider-row">
+    <label>TREBLE → PARTICLES</label>
+    <input type="range" id="s-treble" min="0" max="2" step="0.01" value="1">
+    <span class="mono sval">1.00</span>
+  </div>
+  <div class="slider-row">
+    <label>ENERGY → LIGHT</label>
+    <input type="range" id="s-light" min="0" max="2" step="0.01" value="1">
+    <span class="mono sval">1.00</span>
+  </div>
+  <div class="slider-row">
+    <label>MASTER SENSITIVITY</label>
+    <input type="range" id="s-master" min="0.2" max="2" step="0.01" value="1">
+    <span class="mono sval">1.00</span>
+  </div>
+  <div class="drawer-actions">
+    <button id="act-pause" title="pause [SPACE]">❚❚</button>
+    <button id="act-full" title="fullscreen [F]">⛶</button>
+    <button id="act-rec" title="record [R]">●</button>
+    <button id="act-track" title="new track [N]">⬡</button>
+    <button id="act-auto" title="auto-director [A]">∞</button>
+  </div>
+  <div class="drawer-foot mono">
+    <span id="key-readout">KEY —</span>
+    <span id="bpm-readout">— BPM</span>
+    <span id="fps-readout">--</span> FPS
+  </div>
+  <div class="drawer-keys mono">
+    SPACE pause · F fullscreen · R record · N new track<br>
+    1–5 scenes · A auto-director · T tune
+  </div>
+</aside>
+
+<div id="beat-flash"></div>
+<input type="file" id="file-input" accept="audio/*" hidden>
+<audio id="audio-el" crossorigin="anonymous" hidden></audio>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
