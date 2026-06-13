@@ -147,6 +147,9 @@ void main(){
     this.terrain = this._makeTerrainLayer({ y: -5, colorA: 0x00f0ff, colorB: 0xb14cff });
     this.ceiling = this._makeTerrainLayer({ y: 17, flip: true, opacity: 0.35, colorA: 0xff2bd6, colorB: 0x2244ff });
 
+    // aurora curtains rippling across the back of the canyon
+    this.aurora = this.makeAurora({ radius: 80, height: 60, y: 6, colorA: 0x39ff88, colorB: 0x00f0ff });
+
     // bokeh dust drifting through the canyon
     this.dust = this.makeParticles(450, { size: 0.55, color: 0x6699ff, opacity: 0.3 });
     for (let i = 0; i < 240; i++) {
@@ -214,6 +217,9 @@ void main(){
       layer.uniforms.uColorB.value.lerp(keyColor, dt * 0.6); // key tints the peaks
     }
 
+    this.aurora.mat.uniforms.uTime.value = this._t;
+    this.aurora.mat.uniforms.uMid.value = audio.mid;
+    this.aurora.mat.uniforms.uEnergy.value = audio.smoothEnergy;
     this.stepParticles(this.dust, dt, 0, 0);
     const wobble = 0.03 + audio.smoothBass * 0.25 * p.master;
     for (const m of this.marbleMats) {

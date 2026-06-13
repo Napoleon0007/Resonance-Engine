@@ -24,11 +24,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+# threaded: the page pulls ~16 JS modules + textures in parallel on load;
+# a single-threaded server refuses some of those concurrent connections
+class ThreadingServer(socketserver.ThreadingTCPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+    request_queue_size = 128  # backlog: browser opens ~16 parallel module fetches
+
+
 if __name__ == "__main__":
     if not port_free(PORT):
         print(f"⚠ Port {PORT} is already in use. Try: python3 serve.py {PORT + 1}")
         sys.exit(1)
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    with ThreadingServer(("", PORT), Handler) as httpd:
         url = f"http://localhost:{PORT}"
         print(f"⬡ RESONANCE ENGINE → {url}  (ctrl-C to stop)")
         if "--no-browser" not in sys.argv:

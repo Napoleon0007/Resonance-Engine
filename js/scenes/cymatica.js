@@ -152,6 +152,9 @@ vec3 objectNormal = normalize(cross(fPT - fP0, fPB - fP0));
       o.ribbonIdx = this.ribbons.length - 1;
     }
 
+    // caustic shimmer dancing across the pool
+    this.caustics = this.makeCaustics({ size: 32, y: -2.9, color: 0x88ddff });
+
     this._t = 0;
     this._kickPulse = 0;
     this._keyFlash = 0;
@@ -190,6 +193,9 @@ vec3 objectNormal = normalize(cross(fPT - fP0, fPB - fP0));
       this._mT = 1.5 + (audio.keyPc % 12) / 12 * 3 + (audio.keyMinor ? 0.7 : 0);
       this._keyFlash = 1;
     }
+    this.caustics.mat.uniforms.uTime.value = this._t;
+    this.caustics.mat.uniforms.uEnergy.value = audio.smoothEnergy;
+
     const wu = this.waterUniforms;
     wu.uN.value += (this._nT - wu.uN.value) * dt * 1.2;       // morph, don't snap
     wu.uM.value += (this._mT - wu.uM.value) * dt * 1.2;

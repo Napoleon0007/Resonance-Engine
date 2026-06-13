@@ -25,6 +25,7 @@ export class SpirographScene extends SceneBase {
   defaultGravity() { return { x: 0, y: 0, z: 0 }; }
   envKey() { return 'night'; }
   wantsDOF() { return false; } // 1px neon lines need to stay razor-sharp
+  trails() { return 0.72; } // light-painting ribbons
   cinema() { return { rays: 0.12, streak: 0.4 }; }
 
   build() {

@@ -14,6 +14,8 @@ export class BlackHoleScene extends SceneBase {
   envKey() { return 'night'; }
   cinema() { return { rays: 0.7, streak: 0.85 }; }
   lens() { return 1; } // post-stack bends light around the horizon
+  trails() { return 0.5; }
+  arcColor() { return 0xffb060; }
 
   build() {
     const { scene } = this.three;

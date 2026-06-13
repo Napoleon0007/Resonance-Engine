@@ -167,6 +167,7 @@ class App {
     if (typeof k === 'number') this.post.setKaleido(k);
     else this.post.setKaleido(k.mix, k.segs);
     this.post.setDOF(this.scene.wantsDOF());
+    this.post.setTrails(IS_MOBILE ? 0 : this.scene.trails()); // trails off on phones (cost)
   }
 
   async loadTrack(file) {
@@ -247,8 +248,12 @@ class App {
       this._slowmoUntil = now + 1900;
       this.post.kick(2, this.director.screenFocus());
     }
-    const targetTs = now < this._slowmoUntil ? 0.12 : 1;
+    const inSlowmo = now < this._slowmoUntil;
+    const targetTs = inSlowmo ? 0.12 : 1;
     this.timeScale += (targetTs - this.timeScale) * (1 - Math.exp(-dt * 7));
+    // hyperspace radial streak ramps up while the drop's slow-mo holds
+    this._warp = (this._warp || 0) + ((inSlowmo ? 1 : 0) - (this._warp || 0)) * (1 - Math.exp(-dt * 6));
+    this.post.setWarp(this._warp);
 
     if (this.scene && !this.paused) {
       if (this.audio.kick) {

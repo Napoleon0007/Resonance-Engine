@@ -129,6 +129,42 @@ uniform float uTime; uniform float uWobble;
   return material;
 }
 
+// Oil-slick / soap-bubble iridescence: a view-angle rainbow fresnel painted
+// onto any material's surface. The rim shifts through the spectrum as the
+// camera moves — that holographic, petrol-on-water shimmer.
+export function addIridescence(material, { strength = 0.6, speed = 0.05 } = {}) {
+  material.userData.uIriTime = material.userData.uIriTime || { value: 0 };
+  const prev = material.onBeforeCompile;
+  material.onBeforeCompile = shader => {
+    if (prev) prev(shader);
+    shader.uniforms.uIriTime = material.userData.uIriTime;
+    shader.uniforms.uIriStrength = { value: strength };
+    shader.fragmentShader = `
+uniform float uIriTime; uniform float uIriStrength;
+vec3 iriHue(float t){
+  return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67)));
+}
+` + shader.fragmentShader.replace(
+      '#include <output_fragment>',
+      `#include <output_fragment>
+{
+  float fres = pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), 2.2);
+  vec3 sheen = iriHue(fres * 1.6 + uIriTime * ${speed.toFixed(3)});
+  gl_FragColor.rgb += sheen * fres * uIriStrength;
+}`
+    ).replace(
+      '#include <opaque_fragment>',
+      `#include <opaque_fragment>
+{
+  float fres = pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), 2.2);
+  vec3 sheen = iriHue(fres * 1.6 + uIriTime * ${speed.toFixed(3)});
+  gl_FragColor.rgb += sheen * fres * uIriStrength;
+}`
+    );
+  };
+  return material;
+}
+
 // Liquid blob material: glassy transmission + iridescence + wobble.
 export function makeLiquidMaterial(color, { transmission = 0.9, wobbleScale = 1.6 } = {}) {
   const mat = new THREE.MeshPhysicalMaterial({

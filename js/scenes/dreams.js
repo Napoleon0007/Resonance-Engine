@@ -17,6 +17,10 @@ export class DreamsScene extends SceneBase {
   envKey() { return 'dusk'; }
   cinema() { return { rays: 0.15, streak: 0.4 }; }
   kaleido() { return 0; } // keep the real things recognisable
+  trails() { return 0.55; }
+  stormCount() { return this.shared.mobile ? 4000 : 12000; } // faint dust
+  stormColors() { return [0xff80e0, 0x80c0ff]; }
+  arcsEnabled() { return false; }
 
   build() {
     const { scene } = this.three;

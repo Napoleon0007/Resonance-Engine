@@ -6,13 +6,14 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { SceneBase } from './scene-base.js';
-import { NOISE_GLSL, makeRockGeometry } from '../materials.js';
+import { NOISE_GLSL, makeRockGeometry, addIridescence } from '../materials.js';
 
 const SHARDS = 18;
 
 export class PulseOrbScene extends SceneBase {
   defaultGravity() { return { x: 0, y: 0, z: 0 }; }
   envKey() { return 'studio'; }
+  trails() { return 0.62; }
 
   build() {
     const { scene } = this.three;
@@ -83,6 +84,7 @@ vec3 objectNormal = normalize(cross(fPT - fP0, fPB - fP0));
         .replace('#include <begin_vertex>', /* glsl */`
 vec3 transformed = fP0;`);
     };
+    addIridescence(orbMat, { strength: 0.7 }); // petrol-on-water sheen
     this.disposable(orbMat);
 
     const seg = this.shared.mobile ? 120 : 196; // spikes need verts; phones need mercy
@@ -107,12 +109,15 @@ vec3 transformed = fP0;`);
     this.group.add(this.mirror);
     this.disposable(this.mirror.geometry, this.mirror.material);
     this.addGroundBox(26, 0.5, 26, -6.8); // shards bounce off the mirror
+    // caustic light-web dancing on the mirror
+    this.caustics = this.makeCaustics({ size: 48, y: -6.1, color: 0x66c0ff });
 
     // ---- orbiting obsidian shards, kicked outward on hits ----
     const shardMat = new THREE.MeshPhysicalMaterial({
       color: 0x0d0716, metalness: 0.95, roughness: 0.22,
       iridescence: 0.8, envMapIntensity: 1.8,
     });
+    addIridescence(shardMat, { strength: 0.9 });
     this.disposable(shardMat);
     for (let i = 0; i < SHARDS; i++) {
       const r = 0.16 + Math.random() * 0.3;
@@ -187,6 +192,8 @@ vec3 transformed = fP0;`);
     // treble + voice ripple the surface; the orb "sings" with the vocal
     u.uSpike.value = 0.18 + (audio.treble * 1.5 + audio.presence * 1.0 + audio.mid * 0.5) * p.treble * p.master;
     this.orbMesh.material.emissiveIntensity = 0.2 + audio.smoothPresence * 1.4 * p.light;
+    this.caustics.mat.uniforms.uTime.value = this._t;
+    this.caustics.mat.uniforms.uEnergy.value = audio.smoothEnergy;
     this.orbMesh.rotation.y += dt * (0.12 + audio.smoothEnergy * 0.5);
     // whole-orb pump on the beat
     const pump = 1 + this._kickPulse * 0.07 + audio.bass * 0.05;

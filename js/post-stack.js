@@ -8,6 +8,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { AfterimagePass } from 'three/addons/postprocessing/AfterimagePass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // God rays + anamorphic streak + lens dirt + halation — the "shot on real
@@ -62,15 +63,20 @@ void main(){
   rays /= 14.0;
   col += rays * 0.55 * uRayAmt;
 
-  // --- anamorphic streak: horizontal smear of hot pixels, tinted cold blue
+  // --- star glints: a horizontal anamorphic streak (cold blue) plus a softer
+  // vertical streak on the very brightest points = a 4-point lens sparkle
   vec3 streak = vec3(0.0);
+  vec3 vstreak = vec3(0.0);
   for (int i = 1; i <= 7; i++) {
     float o = float(i) * float(i) * 0.004;
     streak += max(texture2D(tDiffuse, vUv + vec2(o, 0.0)).rgb - 0.9, 0.0);
     streak += max(texture2D(tDiffuse, vUv - vec2(o, 0.0)).rgb - 0.9, 0.0);
+    vstreak += max(texture2D(tDiffuse, vUv + vec2(0.0, o)).rgb - 0.94, 0.0);
+    vstreak += max(texture2D(tDiffuse, vUv - vec2(0.0, o)).rgb - 0.94, 0.0);
   }
-  streak /= 14.0;
+  streak /= 14.0; vstreak /= 14.0;
   col += streak * vec3(0.35, 0.55, 1.0) * 0.6 * uStreakAmt;
+  col += vstreak * vec3(0.9, 0.85, 1.0) * 0.5 * uStreakAmt; // white vertical glint
 
   // --- halation: tight warm bleed around only the very hottest pixels
   float hot = max(luma(col) - 0.88, 0.0);
@@ -128,6 +134,7 @@ const ImpactShader = {
     uKaleidoSegs: { value: 6 },
     uLensPos: { value: new THREE.Vector2(0.5, 0.5) },
     uLensAmt: { value: 0 },
+    uWarpZoom: { value: 0 }, // hyperspace radial streak on the drop
   },
   vertexShader: /* glsl */`
 varying vec2 vUv;
@@ -135,7 +142,7 @@ void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(p
   fragmentShader: /* glsl */`
 uniform sampler2D tDiffuse;
 uniform float uTime, uShockTime, uShockStrength, uAberration, uFlash, uEnergy;
-uniform float uKaleidoMix, uKaleidoSegs, uLensAmt;
+uniform float uKaleidoMix, uKaleidoSegs, uLensAmt, uWarpZoom;
 uniform vec2 uShockCenter, uLensPos;
 varying vec2 vUv;
 
@@ -179,6 +186,18 @@ void main(){
   col.g = texture2D(tDiffuse, uv).g;
   col.b = texture2D(tDiffuse, uv - dir * ca).b;
 
+  // hyperspace: radial streak smear toward the edges on the drop
+  if (uWarpZoom > 0.001) {
+    vec3 warp = vec3(0.0);
+    for (int i = 1; i <= 10; i++) {
+      float s = 1.0 - float(i) * 0.012 * uWarpZoom;
+      vec2 wuv = (uv - 0.5) * s + 0.5;
+      warp += texture2D(tDiffuse, wuv).rgb * (1.0 - float(i) / 10.0);
+    }
+    warp /= 5.0;
+    col = mix(col, max(col, warp), clamp(uWarpZoom, 0.0, 1.0));
+  }
+
   // exposure flash on the hit, decays fast
   col *= 1.0 + uFlash * 0.55;
 
@@ -212,6 +231,11 @@ export class PostStack {
       0.86,   // threshold: only genuinely bright things bloom
     );
 
+    // frame-feedback echo trails — each frame bleeds faintly into the next
+    this.afterimage = new AfterimagePass(0.0);
+    this.afterimage.enabled = false;
+    this._trailBase = 0;
+
     this.cinema = new ShaderPass(CinemaShader);
     this.impact = new ShaderPass(ImpactShader);
     this.sharpen = new ShaderPass(SharpenShader);
@@ -219,6 +243,7 @@ export class PostStack {
     this.output = new OutputPass();
 
     this.composer.addPass(this.renderPass);
+    this.composer.addPass(this.afterimage);  // trails the sharp scene
     this.composer.addPass(this.bokeh);
     this.composer.addPass(this.bloom);
     this.composer.addPass(this.cinema);
@@ -271,6 +296,12 @@ export class PostStack {
     this.impact.uniforms.uKaleidoSegs.value = segments;
   }
 
+  // echo-trail strength 0..0.96; beats can briefly push it higher
+  setTrails(damp) {
+    this._trailBase = damp;
+    this.afterimage.enabled = damp > 0.001;
+  }
+
   // small reaction for snares/hats/melody — a touch of aberration, barely any flash
   microPulse(strength) {
     this._flash = Math.min(0.5, this._flash + strength * 0.04);
@@ -285,11 +316,20 @@ export class PostStack {
     this._aberr = Math.min(1.6, this._aberr + strength * 0.5);
   }
 
+  // hyperspace warp 0..1, ramped during bullet-time drops
+  setWarp(amt) { this.impact.uniforms.uWarpZoom.value = amt; }
+
   update(dt, audio, fps, lightSens) {
     this._shockClock += dt;
     // fast decay = a crisp snap back to clarity instead of a lingering haze
     this._flash = Math.max(0, this._flash - dt * 7.5);
     this._aberr = Math.max(0, this._aberr - dt * 6.0);
+
+    // trails: base damping + a touch more on the beat (light-painting swells)
+    if (this.afterimage.enabled) {
+      const target = Math.min(0.96, this._trailBase + this._flash * 0.08);
+      this.afterimage.uniforms.damp.value += (target - this.afterimage.uniforms.damp.value) * 0.2;
+    }
 
     this.cinema.uniforms.uTime.value += dt;
 

@@ -14,6 +14,7 @@ export class PsychedeliaScene extends SceneBase {
   envKey() { return 'sunset'; }
   kaleido() { return 0.35; }
   cinema() { return { rays: 0.1, streak: 0.35 }; } // the dome IS the light
+  stormCount() { return 0; } // inside a dome — storm would just clutter
 
   build() {
     const { scene } = this.three;

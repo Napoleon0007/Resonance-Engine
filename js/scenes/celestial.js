@@ -25,6 +25,9 @@ export class CelestialScene extends SceneBase {
   envKey() { return 'night'; }
   lightWorldPos() { return this.sun ? this.sun.body.translation() : { x: 0, y: 0, z: 0 }; }
   cinema() { return { rays: 0.95, streak: 0.75 }; } // one star — full lens drama
+  stormColors() { return [0x88aaff, 0xffd0a0]; } // cosmic dust
+  stormRadius() { return 60; }
+  arcsEnabled() { return false; }
 
   build() {
     const { scene } = this.three;
@@ -173,7 +176,10 @@ void main(){
       this.planets.push(o);
     }
 
-    this.trails = this.makeParticles(1200, { size: 0.1, color: 0x9fc8ff, opacity: 0.6 });
+    // distant aurora veil across deep space
+    this.aurora = this.makeAurora({ radius: 95, height: 80, y: 0, colorA: 0x2244ff, colorB: 0xb14cff });
+
+    this.stardust = this.makeParticles(1200, { size: 0.1, color: 0x9fc8ff, opacity: 0.6 });
     this.comets = [];
     this._t = 0;
   }
@@ -294,7 +300,7 @@ void main(){
       const c = this.comets[i];
       c.age += dt;
       const t = c.body.translation();
-      this.emitParticle(this.trails, t.x, t.y, t.z, 0, 0, 0, 0.9);
+      this.emitParticle(this.stardust, t.x, t.y, t.z, 0, 0, 0, 0.9);
       if (c.age > 14 || Math.hypot(t.x, t.y, t.z) > 110) {
         this.world.removeRigidBody(c.body);
         this.group.remove(c.mesh);
@@ -302,7 +308,7 @@ void main(){
         this.comets.splice(i, 1);
       }
     }
-    this.stepParticles(this.trails, dt, 0, 0.4);
+    this.stepParticles(this.stardust, dt, 0, 0.4);
 
     // star throbs with energy; melody onsets flare it
     this._sunFlare = Math.max(0, (this._sunFlare || 0) - dt * 2.5);
@@ -313,6 +319,9 @@ void main(){
     this.sun.mesh.scale.setScalar(this.sun.baseScale * pulse);
     this.starfield.rotation.y += dt * 0.008;
     this.starMat.uniforms.uTime.value = this._t;
+    this.aurora.mat.uniforms.uTime.value = this._t;
+    this.aurora.mat.uniforms.uMid.value = audio.mid;
+    this.aurora.mat.uniforms.uEnergy.value = audio.smoothEnergy;
     for (const g of this.galaxies) g.sprite.material.rotation += g.spin * dt * (1 + audio.smoothEnergy * 3);
   }
 }

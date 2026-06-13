@@ -221,8 +221,15 @@ body.dragging #boot-screen, body.dragging #stage { filter: brightness(1.3); }
 
 /* fat-finger targets on touch devices */
 @media (pointer: coarse) {
-  .preset-btn { width: 44px; height: 42px; font-size: 19px; }
-  #drawer-toggle { font-size: 20px; padding: 8px; }
+  /* 8 preset glyphs must fit a narrow phone without colliding with the
+     drawer toggle — keep the row centred and the toggle lifted above it */
+  #presets { gap: 3px; max-width: 96vw; flex-wrap: wrap; justify-content: center; }
+  .preset-btn { width: 38px; height: 40px; font-size: 18px; }
+  #drawer-toggle {
+    font-size: 20px; padding: 8px;
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px)); /* above the preset row */
+  }
+  #drawer { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
   .drawer-actions button { height: 46px; font-size: 17px; }
   .drawer-keys { display: none; } /* keyboard hints mean nothing on a phone */
   input[type=range]::-webkit-slider-thumb { width: 20px; height: 20px; }
